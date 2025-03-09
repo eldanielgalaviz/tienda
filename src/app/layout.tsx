@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
 import { ClientThemeProvider } from "@/components/providers/theme-provider";
+import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Fashion Treats - Sneakers y Moda Urbana",
   description: "Tu destino para sneakers de edición limitada y moda exclusiva",
 };
+
 
 export default function RootLayout({
   children,
@@ -149,7 +150,7 @@ export default function RootLayout({
               </div>
             </footer>
           </div>
-        </ClientThemeProvider>
+          </ClientThemeProvider>
       </body>
     </html>
   );
