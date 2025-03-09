@@ -1,22 +1,25 @@
-import type React from "react"
-import { Inter } from "next/font/google"
-import { ThemeProvider } from "@/components/providers/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
-import "./globals.css"
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { ClientThemeProvider } from "@/components/providers/theme-provider";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
+export const metadata: Metadata = {
+  title: "Fashion Treats - Sneakers y Moda Urbana",
+  description: "Tu destino para sneakers de edición limitada y moda exclusiva",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-        <div className="min-h-screen flex flex-col" suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
+        <ClientThemeProvider>
+          <div className="min-h-screen flex flex-col">
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="container mx-auto px-4">
                 <div className="flex h-16 items-center justify-between">
@@ -146,10 +149,8 @@ export default function RootLayout({
               </div>
             </footer>
           </div>
-          <Toaster />
-        </ThemeProvider>
+        </ClientThemeProvider>
       </body>
     </html>
-  )
+  );
 }
-
