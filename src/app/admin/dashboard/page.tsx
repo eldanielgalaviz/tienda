@@ -1,4 +1,7 @@
-"use client"
+"use client";
+import { useRouter } from 'next/navigation';
+const router = useRouter();
+router.push('/dashboard');
 
 import { useState } from "react"
 import { Link, Routes, Route, useLocation } from "react-router-dom"
