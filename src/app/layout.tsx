@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ClientThemeProvider } from "@/components/providers/theme-provider";
+import ClientHeader from "@/components/ClientHeader";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -9,7 +10,6 @@ export const metadata: Metadata = {
   title: "Fashion Treats - Sneakers y Moda Urbana",
   description: "Tu destino para sneakers de edición limitada y moda exclusiva",
 };
-
 
 export default function RootLayout({
   children,
@@ -21,42 +21,7 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <ClientThemeProvider>
           <div className="min-h-screen flex flex-col">
-            <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="container mx-auto px-4">
-                <div className="flex h-16 items-center justify-between">
-                  <a href="/" className="font-bold text-xl">
-                    Fashion Treats
-                  </a>
-
-                  <nav className="hidden md:flex items-center gap-6">
-                    <a href="/tienda" className="hover:text-gray-600 transition-colors">
-                      Tienda
-                    </a>
-                    <a href="/nuevo" className="hover:text-gray-600 transition-colors">
-                      Nuevo
-                    </a>
-                    <a href="/marcas" className="hover:text-gray-600 transition-colors">
-                      Marcas
-                    </a>
-                    <a href="/sale" className="hover:text-gray-600 transition-colors">
-                      Sale
-                    </a>
-                  </nav>
-
-                  <div className="flex items-center gap-4">
-                    <a href="/buscar" className="hover:text-gray-600 transition-colors">
-                      Buscar
-                    </a>
-                    <a href="/cuenta" className="hover:text-gray-600 transition-colors">
-                      Cuenta
-                    </a>
-                    <a href="/carrito" className="hover:text-gray-600 transition-colors">
-                      Carrito (0)
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </header>
+            <ClientHeader />
 
             {children}
 
@@ -150,7 +115,7 @@ export default function RootLayout({
               </div>
             </footer>
           </div>
-          </ClientThemeProvider>
+        </ClientThemeProvider>
       </body>
     </html>
   );
