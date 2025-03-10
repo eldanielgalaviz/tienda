@@ -64,17 +64,43 @@ const RegisterPage = () => {
 
     setIsLoading(true);
 
-    // Simulación de registro
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al registrar');
+      }
 
       toast({
         title: "Registro exitoso",
         description: "Tu cuenta ha sido creada correctamente.",
       });
 
-      router.push("/login");
-    }, 1500);
+      // Redireccionar al login
+      router.push('/login');
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al registrar usuario",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

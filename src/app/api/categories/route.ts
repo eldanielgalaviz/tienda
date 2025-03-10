@@ -1,15 +1,15 @@
 // app/api/categories/route.ts
 import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const categories = await prisma.products_categories.findMany({
+    const categories = await prisma.categories.findMany({
       where: {
         parent_id: null
       },
       include: {
-        products_categories: true // Incluir subcategorías
+        children: true // Incluir subcategorías
       }
     })
 

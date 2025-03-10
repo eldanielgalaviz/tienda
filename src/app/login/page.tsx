@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ const LoginPage = () => {
 
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,25 +35,39 @@ const LoginPage = () => {
 
     setIsLoading(true);
 
-    // Simulación de inicio de sesión
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-      // Simulación de credenciales correctas
-      if (email === "usuario@ejemplo.com" && password === "password") {
-        toast({
-          title: "Inicio de sesión exitoso",
-          description: "Bienvenido de nuevo.",
-        });
-        router.push("/cuenta");
-      } else {
-        toast({
-          title: "Error de inicio de sesión",
-          description: "Correo electrónico o contraseña incorrectos.",
-          variant: "destructive",
-        });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al iniciar sesión');
       }
-    }, 1500);
+
+      toast({
+        title: "Inicio de sesión exitoso",
+        description: "Bienvenido de nuevo.",
+      });
+
+      // Redireccionar después del login
+      router.push(redirectTo);
+      router.refresh(); // Refrescar para actualizar el estado de autenticación
+      
+    } catch (error) {
+      toast({
+        title: "Error de inicio de sesión",
+        description: error instanceof Error ? error.message : "Credenciales incorrectas",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

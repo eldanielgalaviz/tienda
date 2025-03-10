@@ -1,11 +1,11 @@
 // app/categories/page.tsx
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 export default async function CategoriesPage() {
-  const categories = await prisma.products_categories.findMany({
+  const categories = await prisma.categories.findMany({
     where: { parent_id: null },
     include: {
-      products_categories: true
+      children: true
     }
   })
 
@@ -17,11 +17,11 @@ export default async function CategoriesPage() {
           <div key={category.id} className="border rounded-lg p-4">
             <h2 className="text-xl font-semibold">{category.name}</h2>
             <p className="text-gray-600">{category.description}</p>
-            {category.products_categories.length > 0 && (
+            {category.children.length > 0 && (
               <div className="mt-4">
                 <h3 className="font-medium">Subcategorías:</h3>
                 <ul className="mt-2 space-y-1">
-                  {category.products_categories.map((subcat) => (
+                  {category.children.map((subcat) => (
                     <li key={subcat.id} className="text-sm">
                       {subcat.name}
                     </li>
