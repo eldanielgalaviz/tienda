@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
     try {
       // Verificar el token (usando jose en lugar de jsonwebtoken que no funciona en edge)
       const secretKey = new TextEncoder().encode(
-        process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+        process.env.JWT_SECRET || '829b427bd6896582e55938b35e21934d59484a38067d05fd2c6b8792d9ba4f7e'
       );
       
       const { payload } = await jwtVerify(token, secretKey);

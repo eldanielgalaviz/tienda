@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import Link from "next/link"  // Cambiado a Next.js Link
 import { Search, User, ShoppingCart, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -11,8 +11,30 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { items } = useCart()
+  const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const checkUser = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+          setIsAdmin(data.user?.is_admin || false);
+          console.log("User data:", data.user);  // Para depuración
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    checkUser();
+  
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10)
     }
@@ -31,7 +53,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center">
+          <Link href="/" className="flex items-center">
             <div className="bg-black p-2 mr-2">
               <span className="text-white font-bold text-xl">ft</span>
             </div>
@@ -43,22 +65,29 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link to="/" className="font-medium hover:text-gray-600 transition-colors">
+            <Link href="/" className="font-medium hover:text-gray-600 transition-colors">
               Inicio
             </Link>
-            <Link to="/tienda" className="font-medium hover:text-gray-600 transition-colors">
+
+            {isAdmin && (
+              <Link href="/admin" className="text-sm font-medium px-3 py-2 rounded-md bg-black text-white hover:bg-gray-800 transition-colors">
+                Panel Admin
+              </Link>
+            )}
+            
+            <Link href="/tienda" className="font-medium hover:text-gray-600 transition-colors">
               Tienda
             </Link>
-            <Link to="/tienda?categoria=sneakers" className="font-medium hover:text-gray-600 transition-colors">
+            <Link href="/tienda?categoria=sneakers" className="font-medium hover:text-gray-600 transition-colors">
               Sneakers
             </Link>
-            <Link to="/tienda?categoria=ropa" className="font-medium hover:text-gray-600 transition-colors">
+            <Link href="/tienda?categoria=ropa" className="font-medium hover:text-gray-600 transition-colors">
               Ropa
             </Link>
-            <Link to="/tienda?categoria=accesorios" className="font-medium hover:text-gray-600 transition-colors">
+            <Link href="/tienda?categoria=accesorios" className="font-medium hover:text-gray-600 transition-colors">
               Accesorios
             </Link>
-            <Link to="/contacto" className="font-medium hover:text-gray-600 transition-colors">
+            <Link href="/contacto" className="font-medium hover:text-gray-600 transition-colors">
               Contacto
             </Link>
           </nav>
@@ -68,13 +97,22 @@ const Navbar = () => {
             <Button variant="ghost" size="icon" aria-label="Buscar">
               <Search className="h-5 w-5" />
             </Button>
-            <Link to="/login">
-              <Button variant="ghost" className="hidden md:flex items-center gap-2">
-                <User className="h-5 w-5" />
-                <span>Iniciar Sesión</span>
-              </Button>
-            </Link>
-            <Link to="/carrito" className="relative">
+            {!user ? (
+              <Link href="/login">
+                <Button variant="ghost" className="hidden md:flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  <span>Iniciar Sesión</span>
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/cuenta">
+                <Button variant="ghost" className="hidden md:flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  <span>{user.first_name}</span>
+                </Button>
+              </Link>
+            )}
+            <Link href="/carrito" className="relative">
               <Button variant="ghost" size="icon" aria-label="Carrito">
                 <ShoppingCart className="h-5 w-5" />
                 {items.length > 0 && (
@@ -103,61 +141,85 @@ const Navbar = () => {
           <div className="md:hidden pt-4 pb-2">
             <nav className="flex flex-col space-y-4">
               <Link
-                to="/"
+                href="/"
                 className="font-medium py-2 hover:bg-gray-100 px-2 rounded"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Inicio
               </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="font-medium py-2 bg-black text-white px-2 rounded"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Panel Admin
+                </Link>
+              )}
               <Link
-                to="/tienda"
+                href="/tienda"
                 className="font-medium py-2 hover:bg-gray-100 px-2 rounded"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Tienda
               </Link>
               <Link
-                to="/tienda?categoria=sneakers"
+                href="/tienda?categoria=sneakers"
                 className="font-medium py-2 hover:bg-gray-100 px-2 rounded"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Sneakers
               </Link>
               <Link
-                to="/tienda?categoria=ropa"
+                href="/tienda?categoria=ropa"
                 className="font-medium py-2 hover:bg-gray-100 px-2 rounded"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Ropa
               </Link>
               <Link
-                to="/tienda?categoria=accesorios"
+                href="/tienda?categoria=accesorios"
                 className="font-medium py-2 hover:bg-gray-100 px-2 rounded"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Accesorios
               </Link>
               <Link
-                to="/contacto"
+                href="/contacto"
                 className="font-medium py-2 hover:bg-gray-100 px-2 rounded"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Contacto
               </Link>
-              <Link
-                to="/login"
-                className="font-medium py-2 hover:bg-gray-100 px-2 rounded"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Iniciar Sesión
-              </Link>
+              {!user ? (
+                <Link
+                  href="/login"
+                  className="font-medium py-2 hover:bg-gray-100 px-2 rounded"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Iniciar Sesión
+                </Link>
+              ) : (
+                <Link
+                  href="/cuenta"
+                  className="font-medium py-2 hover:bg-gray-100 px-2 rounded"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Mi Cuenta
+                </Link>
+              )}
             </nav>
           </div>
         )}
       </div>
+      {/* Depuración: muestra si el usuario es admin */}
+      {process.env.NODE_ENV !== 'production' && (
+        <div className="fixed bottom-0 right-0 bg-black text-white p-2 text-xs">
+          isAdmin: {isAdmin ? 'true' : 'false'}
+        </div>
+      )}
     </header>
   )
 }
 
 export default Navbar
-
