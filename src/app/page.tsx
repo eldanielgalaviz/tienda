@@ -1,8 +1,65 @@
+"use client"
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 export default function HomePage() {
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const productsPerPage = 4;
+
+  // Cargar productos destacados desde la API
+  useEffect(() => {
+    const fetchTopProducts = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/products/top?limit=12');
+        if (!response.ok) {
+          throw new Error('Error al cargar productos destacados');
+        }
+        const data = await response.json();
+        setFeaturedProducts(data.products);
+      } catch (error) {
+        console.error('Error al cargar productos destacados:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTopProducts();
+  }, []);
+
+  // Calculamos cuántas páginas de productos tenemos
+  const totalPages = Math.ceil(featuredProducts.length / productsPerPage);
+  
+  // Calculamos qué productos mostrar en la página actual
+  const displayedProducts = featuredProducts.slice(
+    currentPage * productsPerPage,
+    (currentPage + 1) * productsPerPage
+  );
+
+  // Funciones de navegación para el carrusel
+  const nextPage = () => {
+    setCurrentPage((prev) => (prev + 1) % totalPages);
+  };
+
+  const prevPage = () => {
+    setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages);
+  };
+
+  // Función para formatear el precio
+  const formatPrice = (price) => {
+    return price.toLocaleString('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+  };
+
   return (
     <main className="flex-1">
       {/* Hero Section */}
@@ -48,17 +105,21 @@ export default function HomePage() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold">Productos Destacados</h2>
+            <h2 className="text-2xl font-bold">Productos Más Vendidos</h2>
             <div className="flex gap-2">
               <button
                 className="p-2 border rounded-full hover:bg-slate-100 transition-colors"
                 aria-label="Previous"
+                onClick={prevPage}
+                disabled={isLoading || featuredProducts.length <= productsPerPage}
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <button
                 className="p-2 border rounded-full hover:bg-slate-100 transition-colors"
                 aria-label="Next"
+                onClick={nextPage}
+                disabled={isLoading || featuredProducts.length <= productsPerPage}
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -66,26 +127,86 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {/* Sample Product Cards */}
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="border rounded-lg overflow-hidden group">
-                <div className="aspect-square relative bg-slate-100">
-                  <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                    Imagen del Producto
+            {isLoading ? (
+              // Mostrar esqueletos de carga mientras se cargan los productos
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="border rounded-lg overflow-hidden animate-pulse">
+                  <div className="aspect-square bg-slate-200"></div>
+                  <div className="p-4">
+                    <div className="h-5 bg-slate-200 rounded mb-2"></div>
+                    <div className="h-4 bg-slate-200 rounded w-1/2 mb-4"></div>
+                    <div className="flex justify-between items-center">
+                      <div className="h-6 bg-slate-200 rounded w-1/4"></div>
+                      <div className="h-8 bg-slate-200 rounded w-1/4"></div>
+                    </div>
                   </div>
                 </div>
-                <div className="p-4">
-                  <h3 className="font-medium mb-1">Producto Ejemplo {i}</h3>
-                  <p className="text-sm text-slate-500 mb-2">Marca</p>
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold">$129.99</span>
-                    <button className="text-sm font-medium bg-black text-white px-3 py-1 rounded hover:bg-slate-800 transition-colors">
-                      Añadir
-                    </button>
-                  </div>
-                </div>
+              ))
+            ) : featuredProducts.length === 0 ? (
+              <div className="col-span-4 text-center py-12 text-slate-500">
+                No hay productos disponibles en este momento.
               </div>
-            ))}
+            ) : (
+              // Mostrar productos destacados
+              displayedProducts.map((product) => (
+                <Link 
+                  key={product.id} 
+                  href={`/producto/${product.slug}`}
+                  className="border rounded-lg overflow-hidden group hover:shadow-md transition-shadow"
+                >
+                  <div className="aspect-square relative bg-slate-100">
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        style={{ objectFit: "cover" }}
+                        className="group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+                        Imagen no disponible
+                      </div>
+                    )}
+                    
+                    {product.compareAtPrice && product.compareAtPrice > product.price && (
+                      <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                        Oferta
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-medium mb-1 line-clamp-1">{product.name}</h3>
+                    <p className="text-sm text-slate-500 mb-2">{product.brand}</p>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        {product.compareAtPrice && product.compareAtPrice > product.price ? (
+                          <>
+                            <span className="font-bold">{formatPrice(product.price)}</span>
+                            <span className="text-sm text-slate-500 line-through ml-2">
+                              {formatPrice(product.compareAtPrice)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="font-bold">{formatPrice(product.price)}</span>
+                        )}
+                      </div>
+                      <button 
+                        className="text-sm font-medium bg-black text-white px-3 py-1 rounded hover:bg-slate-800 transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // Aquí iría la lógica para añadir al carrito
+                          console.log('Añadir al carrito:', product);
+                        }}
+                      >
+                        Añadir
+                      </button>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>

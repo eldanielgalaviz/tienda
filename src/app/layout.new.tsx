@@ -31,7 +31,7 @@ export default function ClientHeader() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <a href="/" className="font-bold text-xl">
-            Fashion Treatsdd
+            Fashion Treats
           </a><s></s>
 
           <nav className="hidden md:flex items-center gap-6">

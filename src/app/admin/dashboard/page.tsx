@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -30,18 +30,85 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-// Importar los componentes, estos deben existir en tu proyecto
+// Importar componentes de Dashboard
 import AdminOverview from "@/app/admin/Overview/page";
+import AdminProducts from "@/app/admin/products/page";
+import AdminCustomers from "@/app/admin/customers/page";
+import AdminOrders from "@/app/admin/orders/page";
 
 const AdminDashboard = () => {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [dashboardData, setDashboardData] = useState({
+    totalSales: 0,
+    totalOrders: 0,
+    totalCustomers: 0,
+    totalProducts: 0,
+    recentOrders: [],
+    topSellingProducts: []
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch summary data
+        const summaryPromise = fetch('/api/admin/summary').then(res => res.json());
+        
+        // Fetch recent orders
+        const ordersPromise = fetch('/api/orders?limit=5').then(res => res.json());
+        
+        // Fetch top selling products
+        const productsPromise = fetch('/api/products/top?limit=5').then(res => res.json());
+        
+        // Wait for all requests to complete
+        const [summaryData, ordersData, productsData] = await Promise.all([
+          summaryPromise,
+          ordersPromise,
+          productsPromise
+        ]);
+        
+        setDashboardData({
+          totalSales: summaryData.totalSales || 0,
+          totalOrders: summaryData.totalOrders || 0,
+          totalCustomers: summaryData.totalCustomers || 0,
+          totalProducts: summaryData.totalProducts || 0,
+          recentOrders: ordersData.orders || [],
+          topSellingProducts: productsData.products || []
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    // Only fetch data for the overview page
+    if (pathname === "/admin") {
+      fetchDashboardData();
+    } else {
+      setIsLoading(false);
+    }
+  }, [pathname]);
   
   // Función para determinar qué componente mostrar
   const renderContent = () => {
-    // Por ahora solo mostraremos el Overview como ejemplo
-    return <AdminOverview />;
+    switch (pathname) {
+      case "/admin":
+        return <AdminOverview data={dashboardData} isLoading={isLoading} />;
+      case "/admin/products":
+        return <AdminProducts />;
+      case "/admin/customers":
+        return <AdminCustomers />;
+      case "/admin/orders":
+        return <AdminOrders />;
+      default:
+        return <AdminOverview data={dashboardData} isLoading={isLoading} />;
+    }
   };
 
   return (

@@ -8,16 +8,16 @@ const pool = new Pool({
 
 export async function GET() {
   try {
-    // Consulta para obtener categorías principales activas
+    // Consulta para obtener marcas activas
     const query = `
       SELECT 
         id,
         name,
         slug,
         description,
-        parent_id
+        logo_url
       FROM 
-        products.categories
+        products.brands
       WHERE 
         is_active = true
       ORDER BY 
@@ -26,11 +26,11 @@ export async function GET() {
 
     const result = await pool.query(query);
     
-    return NextResponse.json({ categories: result.rows }, { status: 200 });
+    return NextResponse.json({ brands: result.rows }, { status: 200 });
   } catch (error) {
-    console.error('Error al obtener categorías:', error);
+    console.error('Error al obtener marcas:', error);
     return NextResponse.json(
-      { error: 'Error al obtener las categorías', details: error.message },
+      { error: 'Error al obtener las marcas', details: error.message },
       { status: 500 }
     );
   }
