@@ -1,10 +1,8 @@
 "use client";
-import { useRouter } from 'next/navigation';
-const router = useRouter();
-router.push('/dashboard');
 
-import { useState } from "react"
-import { Link, Routes, Route, useLocation } from "react-router-dom"
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -17,9 +15,9 @@ import {
   X,
   Bell,
   Search,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   SidebarProvider,
   Sidebar,
@@ -30,18 +28,21 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
-import AdminOverview from "./Overview"
-import AdminProducts from "./Products"
-import AdminOrders from "./Orders"
-import AdminCustomers from "./Customers"
-import AdminAnalytics from "./Analytics"
-import AdminSettings from "./Settings"
+// Importar los componentes, estos deben existir en tu proyecto
+import AdminOverview from "@/app/admin/Overview/page";
 
 const AdminDashboard = () => {
-  const location = useLocation()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const pathname = usePathname();
+  const router = useRouter();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Función para determinar qué componente mostrar
+  const renderContent = () => {
+    // Por ahora solo mostraremos el Overview como ejemplo
+    return <AdminOverview />;
+  };
 
   return (
     <SidebarProvider>
@@ -59,48 +60,48 @@ const AdminDashboard = () => {
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/admin"}>
-                  <Link to="/admin">
+                <SidebarMenuButton asChild isActive={pathname === "/admin"}>
+                  <Link href="/admin">
                     <LayoutDashboard className="h-5 w-5" />
                     <span>Dashboard</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/admin/orders"}>
-                  <Link to="/admin/orders">
+                <SidebarMenuButton asChild isActive={pathname === "/admin/orders"}>
+                  <Link href="/admin/orders">
                     <ShoppingBag className="h-5 w-5" />
                     <span>Pedidos</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/admin/products"}>
-                  <Link to="/admin/products">
+                <SidebarMenuButton asChild isActive={pathname === "/admin/products"}>
+                  <Link href="/admin/products">
                     <Package className="h-5 w-5" />
                     <span>Productos</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/admin/customers"}>
-                  <Link to="/admin/customers">
+                <SidebarMenuButton asChild isActive={pathname === "/admin/customers"}>
+                  <Link href="/admin/customers">
                     <Users className="h-5 w-5" />
                     <span>Clientes</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/admin/analytics"}>
-                  <Link to="/admin/analytics">
+                <SidebarMenuButton asChild isActive={pathname === "/admin/analytics"}>
+                  <Link href="/admin/analytics">
                     <TrendingUp className="h-5 w-5" />
                     <span>Analíticas</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.pathname === "/admin/settings"}>
-                  <Link to="/admin/settings">
+                <SidebarMenuButton asChild isActive={pathname === "/admin/settings"}>
+                  <Link href="/admin/settings">
                     <Settings className="h-5 w-5" />
                     <span>Configuración</span>
                   </Link>
@@ -112,7 +113,7 @@ const AdminDashboard = () => {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/">
+                  <Link href="/">
                     <LogOut className="h-5 w-5" />
                     <span>Salir</span>
                   </Link>
@@ -168,20 +169,12 @@ const AdminDashboard = () => {
           </header>
 
           <main className="flex-1 p-6">
-            <Routes>
-              <Route index element={<AdminOverview />} />
-              <Route path="products" element={<AdminProducts />} />
-              <Route path="orders" element={<AdminOrders />} />
-              <Route path="customers" element={<AdminCustomers />} />
-              <Route path="analytics" element={<AdminAnalytics />} />
-              <Route path="settings" element={<AdminSettings />} />
-            </Routes>
+            {renderContent()}
           </main>
         </div>
       </div>
     </SidebarProvider>
-  )
-}
+  );
+};
 
-export default AdminDashboard
-
+export default AdminDashboard;

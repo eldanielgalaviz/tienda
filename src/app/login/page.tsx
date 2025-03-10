@@ -1,59 +1,58 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { Eye, EyeOff } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/components/ui/use-toast"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { toast } = useToast()
-  const navigate = useNavigate()
+  const { toast } = useToast();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!email || !password) {
       toast({
         title: "Error",
         description: "Por favor ingresa tu correo y contraseña.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     // Simulación de inicio de sesión
     setTimeout(() => {
-      setIsLoading(false)
+      setIsLoading(false);
 
       // Simulación de credenciales correctas
       if (email === "usuario@ejemplo.com" && password === "password") {
         toast({
           title: "Inicio de sesión exitoso",
           description: "Bienvenido de nuevo.",
-        })
-        navigate("/cuenta")
+        });
+        router.push("/cuenta");
       } else {
         toast({
           title: "Error de inicio de sesión",
           description: "Correo electrónico o contraseña incorrectos.",
           variant: "destructive",
-        })
+        });
       }
-    }, 1500)
-  }
+    }, 1500);
+  };
 
   return (
     <div className="container mx-auto px-4 py-24">
@@ -80,7 +79,7 @@ const LoginPage = () => {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <Label htmlFor="password">Contraseña</Label>
-                <Link to="/recuperar-password" className="text-sm text-gray-600 hover:underline">
+                <Link href="/recuperar-password" className="text-sm text-gray-600 hover:underline">
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
@@ -121,7 +120,7 @@ const LoginPage = () => {
           <div className="text-center mt-6">
             <p className="text-sm text-gray-600">
               ¿No tienes una cuenta?{" "}
-              <Link to="/registro" className="text-black font-medium hover:underline">
+              <Link href="/registro" className="text-black font-medium hover:underline">
                 Regístrate
               </Link>
             </p>
@@ -129,8 +128,7 @@ const LoginPage = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default LoginPage
-
+export default LoginPage;

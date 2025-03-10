@@ -1,16 +1,15 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { Eye, EyeOff } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useToast } from "@/components/ui/use-toast"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -19,21 +18,21 @@ const RegisterPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [acceptTerms, setAcceptTerms] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { toast } = useToast()
-  const navigate = useNavigate()
+  const { toast } = useToast();
+  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     // Validaciones básicas
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
@@ -41,8 +40,8 @@ const RegisterPage = () => {
         title: "Error",
         description: "Por favor completa todos los campos.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -50,8 +49,8 @@ const RegisterPage = () => {
         title: "Error",
         description: "Las contraseñas no coinciden.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     if (!acceptTerms) {
@@ -59,24 +58,24 @@ const RegisterPage = () => {
         title: "Error",
         description: "Debes aceptar los términos y condiciones.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     // Simulación de registro
     setTimeout(() => {
-      setIsLoading(false)
+      setIsLoading(false);
 
       toast({
         title: "Registro exitoso",
         description: "Tu cuenta ha sido creada correctamente.",
-      })
+      });
 
-      navigate("/login")
-    }, 1500)
-  }
+      router.push("/login");
+    }, 1500);
+  };
 
   return (
     <div className="container mx-auto px-4 py-24">
@@ -148,11 +147,11 @@ const RegisterPage = () => {
                 className="text-sm text-gray-600 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 Acepto los{" "}
-                <Link to="/terminos" className="text-black font-medium hover:underline">
+                <Link href="/terminos" className="text-black font-medium hover:underline">
                   Términos y Condiciones
                 </Link>{" "}
                 y la{" "}
-                <Link to="/privacidad" className="text-black font-medium hover:underline">
+                <Link href="/privacidad" className="text-black font-medium hover:underline">
                   Política de Privacidad
                 </Link>
               </label>
@@ -177,7 +176,7 @@ const RegisterPage = () => {
           <div className="text-center mt-6">
             <p className="text-sm text-gray-600">
               ¿Ya tienes una cuenta?{" "}
-              <Link to="/login" className="text-black font-medium hover:underline">
+              <Link href="/login" className="text-black font-medium hover:underline">
                 Iniciar Sesión
               </Link>
             </p>
@@ -185,8 +184,7 @@ const RegisterPage = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default RegisterPage
-
+export default RegisterPage;
