@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Footer from '../components/layout/Footer';
 
 export default function ClientHeader() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -67,6 +68,7 @@ export default function ClientHeader() {
           </div>
         </div>
       </div>
+      <Footer /> {/* Añade el componente Footer */}
 
       {/* Debug indicator */}
       {process.env.NODE_ENV !== 'production' && (

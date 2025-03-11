@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import Footer from '../../components/layout/Footer';
+
 
 export default function ShopPage() {
   // Estados
@@ -12,6 +15,7 @@ export default function ShopPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const { addToCart } = useCart();
   const [filters, setFilters] = useState({
     categories: [],
     brands: [],
@@ -128,7 +132,11 @@ export default function ShopPage() {
       };
     });
   };
-
+  const handleAddToCart = (e, product) => {
+    e.preventDefault();
+    addToCart(product);
+    alert(`${product.name} ha sido añadido a tu carrito.`);
+  };
   // Manejar cambios en los filtros de marcas
   const handleBrandChange = (brandSlug) => {
     setFilters(prev => {
@@ -379,11 +387,7 @@ export default function ShopPage() {
                       </div>
                       <button 
                         className="text-sm font-medium bg-black text-white px-3 py-1 rounded hover:bg-slate-800 transition-colors"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          // Aquí iría la lógica para añadir al carrito
-                          console.log('Añadir al carrito:', product);
-                        }}
+                        onClick={(e) => handleAddToCart(e, product)}
                       >
                         Añadir
                       </button>
@@ -420,5 +424,7 @@ export default function ShopPage() {
         </div>
       </div>
     </div>
+    
   );
+  <Footer />
 }

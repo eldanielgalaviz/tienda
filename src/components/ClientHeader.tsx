@@ -2,17 +2,24 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { ShoppingCart } from "lucide-react";
+import { useCart } from "@/context/CartContext";
 
 export default function ClientHeader() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Usar el contexto del carrito
+  const { totalItems } = useCart();
 
   useEffect(() => {
     const checkUser = async () => {
       try {
+        setIsLoading(true);
         const response = await fetch('/api/auth/me');
         const data = await response.json();
-        
+                
         if (data && data.user) {
           setUser(data.user);
           setIsAdmin(Boolean(data.user.is_admin));
@@ -20,9 +27,11 @@ export default function ClientHeader() {
         }
       } catch (error) {
         console.error('Error verificando usuario:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
-    
+        
     checkUser();
   }, []);
 
@@ -53,16 +62,32 @@ export default function ClientHeader() {
               Sale
             </a>
           </nav>
-
+                        
           <div className="flex items-center gap-4">
+            {/* Mostrar Ingresar y Registrarse solo si no hay usuario logueado */}
+            {!user && !isLoading && (
+              <>
+                <a href="/login" className="hover:text-gray-600 transition-colors">
+                  Ingresar
+                </a>
+                <a href="/registro" className="hover:text-gray-600 transition-colors">
+                  Registrarse
+                </a>
+              </>
+            )}
             <a href="/buscar" className="hover:text-gray-600 transition-colors">
               Buscar
             </a>
             <a href="/cuenta" className="hover:text-gray-600 transition-colors">
               {user ? user.first_name : 'Cuenta'}
             </a>
-            <a href="/carrito" className="hover:text-gray-600 transition-colors">
-              Carrito (0)
+            <a href="/carrito" className="hover:text-gray-600 transition-colors relative">
+              <ShoppingCart className="h-5 w-5" />
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
             </a>
           </div>
         </div>
