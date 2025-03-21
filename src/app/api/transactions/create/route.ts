@@ -1,14 +1,19 @@
+// src/app/api/transactions/create/route.ts
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: 'fashion_treats',
+  password: process.env.DB_PASSWORD,
+  port: parseInt(process.env.DB_PORT || '5432'),
 });
 
 export async function POST(request: Request) {
   try {
     const transactionData = await request.json();
-
+    
     const result = await pool.query(
       `INSERT INTO orders.transactions (
         order_id, transaction_type, payment_method, amount, status, 
@@ -21,10 +26,11 @@ export async function POST(request: Request) {
         transactionData.amount,
         transactionData.status,
         transactionData.gateway_reference,
-        transactionData.gateway_response,
+        transactionData.gateway_response
       ]
     );
-
+    
+    // Si la transacción es exitosa, actualizar el estado de pago en la tabla de órdenes
     if (transactionData.status === 'success') {
       await pool.query(
         `UPDATE orders.orders 
@@ -33,11 +39,11 @@ export async function POST(request: Request) {
         [transactionData.order_id]
       );
     }
-
-    return NextResponse.json({
-      success: true,
+    
+    return NextResponse.json({ 
+      success: true, 
       id: result.rows[0].id,
-      message: 'Transacción registrada correctamente',
+      message: 'Transacción registrada correctamente' 
     });
   } catch (error) {
     console.error('Error al registrar la transacción:', error);

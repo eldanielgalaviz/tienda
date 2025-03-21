@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import Link from "next/link";
 import { Facebook, Instagram, Twitter } from "lucide-react"
 
 const Footer = () => {
@@ -26,27 +26,27 @@ const Footer = () => {
             <h3 className="text-lg font-bold mb-4">Categorías</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/tienda?categoria=sneakers" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/tienda?categoria=sneakers" className="text-gray-300 hover:text-white transition-colors">
                   Sneakers
                 </Link>
               </li>
               <li>
-                <Link to="/tienda?categoria=ropa" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/tienda?categoria=ropa" className="text-gray-300 hover:text-white transition-colors">
                   Ropa
                 </Link>
               </li>
               <li>
-                <Link to="/tienda?categoria=accesorios" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/tienda?categoria=accesorios" className="text-gray-300 hover:text-white transition-colors">
                   Accesorios
                 </Link>
               </li>
               <li>
-                <Link to="/tienda?etiqueta=nuevo" className="text-gray-300 hover:text-white transition-colors">
-                  Nuevos Lanzamientos
+                <Link href="/tienda?etiqueta=nuevo" className="text-gray-300 hover:text-white transition-colors">
+                  Nuevos Lanzamienhrefs
                 </Link>
               </li>
               <li>
-                <Link to="/tienda?etiqueta=oferta" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/tienda?etiqueta=oferta" className="text-gray-300 hover:text-white transition-colors">
                   Ofertas
                 </Link>
               </li>
@@ -57,27 +57,27 @@ const Footer = () => {
             <h3 className="text-lg font-bold mb-4">Ayuda</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/cuenta/pedidos" className="text-gray-300 hover:text-white transition-colors">
-                  Seguimiento de Pedidos
+                <Link href="/cuenta/pedidos" className="text-gray-300 hover:text-white transition-colors">
+                  Seguimienhref de Pedidos
                 </Link>
               </li>
               <li>
-                <Link to="/envios" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/envios" className="text-gray-300 hover:text-white transition-colors">
                   Envíos
                 </Link>
               </li>
               <li>
-                <Link to="/devoluciones" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/devoluciones" className="text-gray-300 hover:text-white transition-colors">
                   Devoluciones
                 </Link>
               </li>
               <li>
-                <Link to="/preguntas-frecuentes" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/preguntas-frecuentes" className="text-gray-300 hover:text-white transition-colors">
                   Preguntas Frecuentes
                 </Link>
               </li>
               <li>
-                <Link to="/contacto" className="text-gray-300 hover:text-white transition-colors">
+                <Link href="/contacto" className="text-gray-300 hover:text-white transition-colors">
                   Contacto
                 </Link>
               </li>
@@ -97,13 +97,13 @@ const Footer = () => {
         <div className="border-t border-gray-800 mt-8 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              &copy; {new Date().getFullYear()} Fashion Treats. Todos los derechos reservados.
+              &copy; {new Date().getFullYear()} Fashion Treats. hrefdos los derechos reservados.
             </p>
             <div className="flex space-x-4 mt-4 md:mt-0">
-              <Link to="/terminos" className="text-gray-400 text-sm hover:text-white transition-colors">
+              <Link href="/terminos" className="text-gray-400 text-sm hover:text-white transition-colors">
                 Términos y Condiciones
               </Link>
-              <Link to="/privacidad" className="text-gray-400 text-sm hover:text-white transition-colors">
+              <Link href="/privacidad" className="text-gray-400 text-sm hover:text-white transition-colors">
                 Política de Privacidad
               </Link>
             </div>

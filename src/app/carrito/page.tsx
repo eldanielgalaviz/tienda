@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MinusCircle, PlusCircle, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import Footer from '@/components/layout/Footer';
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, getSubtotal, clearCart } = useCart();
@@ -53,6 +54,7 @@ export default function CartPage() {
   };
 
   return (
+    <>
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Tu Carrito</h1>
       
@@ -178,5 +180,7 @@ export default function CartPage() {
         </div>
       </div>
     </div>
+    <Footer />
+    </>
   );
 }

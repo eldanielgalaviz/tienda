@@ -1,24 +1,34 @@
+
+// src/app/api/orders/create/route.ts
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: 'fashion_treats',
+  password: process.env.DB_PASSWORD,
+  port: parseInt(process.env.DB_PORT || '5432'),
 });
 
 export async function POST(request: Request) {
   try {
     const orderData = await request.json();
-
+    
+    // Iniciar una transacción para crear la orden
     const client = await pool.connect();
+    
     try {
       await client.query('BEGIN');
-
+      
+      // Obtener el ID del estado "Pendiente"
       const statusResult = await client.query(
         'SELECT id FROM orders.order_statuses WHERE name = $1',
         ['Pendiente']
       );
       const statusId = statusResult.rows[0].id;
-
+      
+      // Insertar la orden
       const orderResult = await client.query(
         `INSERT INTO orders.orders (
           order_number, user_id, status_id, subtotal, tax, shipping_cost, 
@@ -35,12 +45,13 @@ export async function POST(request: Request) {
           orderData.total,
           orderData.payment_method,
           orderData.payment_status,
-          orderData.shipping_method,
+          orderData.shipping_method
         ]
       );
-
+      
       const orderId = orderResult.rows[0].id;
-
+      
+      // Insertar los items de la orden
       for (const item of orderData.items) {
         await client.query(
           `INSERT INTO orders.order_items (
@@ -52,17 +63,17 @@ export async function POST(request: Request) {
             item.variant_id,
             item.quantity,
             item.price,
-            item.total,
+            item.total
           ]
         );
       }
-
+      
       await client.query('COMMIT');
-
-      return NextResponse.json({
-        success: true,
+      
+      return NextResponse.json({ 
+        success: true, 
         id: orderId,
-        message: 'Orden creada correctamente',
+        message: 'Orden creada correctamente' 
       });
     } catch (error) {
       await client.query('ROLLBACK');
