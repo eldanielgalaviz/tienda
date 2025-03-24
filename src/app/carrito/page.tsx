@@ -7,10 +7,15 @@ import Link from 'next/link';
 import { MinusCircle, PlusCircle, Trash2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import Footer from '@/components/layout/Footer';
+import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, getSubtotal, clearCart } = useCart();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+  const [oxxoReference, setOxxoReference] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Cargo fijo de envío (simulado)
   const shippingCost = cart.length > 0 ? 99 : 0;
@@ -42,19 +47,93 @@ export default function CartPage() {
   };
 
   // Simular proceso de pago
-  const handleCheckout = () => {
-    setIsCheckingOut(true);
-    
-    // Simulamos un proceso de pago con un setTimeout
-    setTimeout(() => {
-      clearCart();
-      setIsCheckingOut(false);
-      alert("¡Compra realizada! Gracias por tu compra. Recibirás un correo con los detalles de tu pedido.");
-    }, 2000);
+  const handlePayment = async () => {
+    setIsProcessing(true);
+    setError(null);
+  
+    try {
+      if (!paymentMethod) {
+        throw new Error('Selecciona un método de pago');
+      }
+  
+      if (paymentMethod === 'paypal') {
+        return; // PayPal se maneja automáticamente con los botones
+      }
+  
+      const response = await fetch('/api/payments/conekta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: total,
+          email: 'cliente@ejemplo.com', // Reemplaza con email real
+          paymentMethod: paymentMethod === 'oxxo' ? 'oxxo_cash' : 'card'
+        })
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) throw new Error(data.error || 'Error en el pago');
+  
+      if (paymentMethod === 'oxxo') {
+        setOxxoReference(data.charges[0].payment_method.reference);
+      } else {
+        clearCart();
+        alert('Pago exitoso!');
+      }
+    } catch (err: any) {
+      setError(err.message);
+      console.error('Error en pago:', err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
+  const handlePayPalPayment = async () => {
+    setIsProcessing(true);
+    setError(null);
+  
+    try {
+      // Validar que el total sea mayor a 0
+      if (total <= 0) {
+        throw new Error('El monto total debe ser mayor a cero');
+      }
+  
+      const response = await fetch('/api/payments/paypal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          amount: total,
+          currency: 'MXN'
+        })
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al crear orden de PayPal');
+      }
+  
+      return data.orderID;
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+
+ 
+
   return (
-    <>
+    <PayPalScriptProvider
+      options={{
+        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "",
+        currency: "MXN",
+        intent: "capture"
+      }}
+    >
+      <>
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Tu Carrito</h1>
       
@@ -158,13 +237,102 @@ export default function CartPage() {
                 <span>{formatPrice(total)}</span>
               </div>
             </div>
-            
+
+           {/* Métodos de pago */}
+            <div className="mt-4 space-y-2">
+              <h3 className="font-medium">Método de pago</h3>
+              <button 
+                onClick={() => setPaymentMethod('paypal')}
+                className="w-full bg-blue-500 text-white py-2 rounded"
+              >
+                PayPal
+              </button>
+              <button 
+                onClick={() => setPaymentMethod('oxxo')}
+                className="w-full bg-yellow-600 text-white py-2 rounded mt-2"
+              >
+                Pago en OXXO
+              </button>
+              <button 
+                onClick={() => setPaymentMethod('card')}
+                className="w-full bg-purple-600 text-white py-2 rounded mt-2"
+              >
+                Tarjeta de crédito/débito
+              </button>
+            </div>
+            // Mueve estos componentes dentro del return
+                {paymentMethod === 'paypal' && (
+                  <div className="mt-4">
+                    <PayPalButtons
+                      style={{ layout: 'vertical' }}
+                      createOrder={handlePayPalPayment}
+                      onApprove={async (data) => {
+                        try {
+                          await fetch('/api/payments/paypal-capture', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ orderID: data.orderID })
+                          });
+                          clearCart();
+                          alert('Pago completado con PayPal!');
+                        } catch (error) {
+                          setError('Error al confirmar el pago');
+                        }
+                      }}
+                      onError={(err) => {
+                        setError(`Error de PayPal: ${err.message}`);
+                      }}
+                    />
+                  </div>
+                )}
+
+                {oxxoReference && (
+                  <div className="mt-4 p-4 bg-yellow-50 rounded">
+                    <h4 className="font-bold">Instrucciones para pago en OXXO</h4>
+                    <p>Referencia: <strong>{oxxoReference}</strong></p>
+                    <p className="mt-2">Acude a cualquier OXXO y paga con esta referencia.</p>
+                  </div>
+                )}
+
+            {/* Componentes de pago */}
+            {paymentMethod === 'paypal' && (
+          <PayPalButtons
+            style={{ layout: 'vertical' }}
+            createOrder={async () => {
+              const res = await fetch('/api/payments/paypal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: total })
+              });
+              const { orderID } = await res.json();
+              return orderID;
+            }}
+            onApprove={async (data) => {
+              await fetch('/api/payments/paypal-capture', {
+                method: 'POST',
+                body: JSON.stringify({ orderID: data.orderID })
+              });
+              clearCart();
+              alert('Pago completado con PayPal!');
+            }}
+          />
+        )}
+
+            {oxxoReference && (
+              <div className="mt-4 p-4 bg-yellow-50 rounded">
+                <h4 className="font-bold">Instrucciones para pago en OXXO</h4>
+                <p>Referencia: <strong>{oxxoReference}</strong></p>
+                <p className="mt-2">Acude a cualquier OXXO y paga con esta referencia.</p>
+              </div>
+            )}
+
+            {/* Botón de pago principal */}
             <button 
-              className="w-full bg-black text-white py-2 rounded hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center"
-              disabled={cart.length === 0 || isCheckingOut}
-              onClick={handleCheckout}
+              className="w-full bg-black text-white py-2 rounded hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center mt-4"
+              disabled={cart.length === 0 || isProcessing}
+              onClick={handlePayment}
             >
-              {isCheckingOut ? (
+              {isProcessing ? (
                 <>
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -176,11 +344,18 @@ export default function CartPage() {
                 'Proceder al pago'
               )}
             </button>
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-50 text-red-600 rounded">
+                Error: {error}
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
     <Footer />
-    </>
-  );
+  </>
+  </PayPalScriptProvider>
+);
 }
