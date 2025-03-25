@@ -1,3 +1,5 @@
+// src/app/api/payments/card/route.ts
+
 import { NextResponse } from 'next/server';
 import Conekta from 'conekta';
 

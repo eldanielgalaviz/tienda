@@ -10,6 +10,12 @@ import LoginPage from "./pages/LoginPage"
 import RegisterPage from "./pages/RegisterPage"
 import AdminDashboard from "./pages/admin/Dashboard"
 import NotFoundPage from "./pages/NotFoundPage"
+import { Buffer } from 'buffer';
+
+// Soluciona el problema globalmente
+if (typeof window !== 'undefined') {
+  window.Buffer = Buffer;
+}
 
 function App() {
   console.log("App rendering");
