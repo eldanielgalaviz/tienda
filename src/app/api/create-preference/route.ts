@@ -10,9 +10,10 @@ const pool = new Pool({
 
 export async function POST(request: Request) {
   const client = new MercadoPagoConfig({
-    accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN || ''
+    accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN // Solo el access token
+    // options: { sandbox: true } // Esto fuerza el modo sandbox
   });
-
+  
   const preference = new Preference(client);
 
   try {
@@ -110,23 +111,29 @@ export async function POST(request: Request) {
       // Crear preferencia de pago
       const response = await preference.create({
         body: {
-          items: validatedItems.map((item: any) => ({
-            title: item.name,
-            unit_price: parseFloat(item.price),
+          items: validatedItems.map(item => ({
+            title: item.name.substring(0, 50), // Mercado Pago limita a 50 chars
+            unit_price: Number(item.price),
             quantity: item.quantity,
             currency_id: 'MXN'
           })),
-          back_urls: {
-            success: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success/${orderNumber}`,
-            failure: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/failure/${orderNumber}`,
-            pending: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/pending/${orderNumber}`
+          payer: {
+            // Datos REALES del comprador (se obtendrán del checkout)
           },
-          notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/webhooks/mercadopago`,
-          auto_return: 'approved',
-          external_reference: orderNumber,
+
           payment_methods: {
+            excluded_payment_types: [{ id: "atm" }],
             installments: 12
-          }
+          },
+          back_urls: {
+            success: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success`,
+            failure: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/failure`,
+            pending: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/pending`
+          },
+          auto_return: "approved",
+
+          statement_descriptor: "FASHION TREATS", // Máx 22 chars
+          external_reference: orderNumber
         }
       });
 

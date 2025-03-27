@@ -1,11 +1,25 @@
-//src/app/carrito/page.ts
 'use client';
 
 import { useState, useEffect } from 'react';
 import { initMercadoPago, Wallet } from '@mercadopago/sdk-react';
+import { loadStripe } from '@stripe/stripe-js';
 import { useRouter } from 'next/navigation';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
-// Definición de tipos para mayor seguridad
+// Configuración de Stripe
+
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  size?: string;
+  color?: string;
+}
+// Configuración de Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY || '');
+
 interface CartItem {
   id: string;
   name: string;
@@ -16,26 +30,97 @@ interface CartItem {
   color?: string;
 }
 
+// Componente de formulario de pago con Stripe
+const StripePaymentForm = ({ total, onSuccess }: { total: number, onSuccess: () => void }) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!stripe || !elements) return;
+
+    setProcessing(true);
+
+    try {
+      const response = await fetch('/api/create-stripe-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: Math.round(total * 100) }) // Asegura número entero
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al crear el pago');
+      }
+
+      const { clientSecret } = await response.json();
+
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement)!,
+          billing_details: {
+            name: 'Cliente de prueba', // Agrega datos mínimos requeridos
+          },
+        }
+      });
+
+      if (error) {
+        console.error('Error de Stripe:', error);
+        throw error;
+      }
+
+      if (paymentIntent.status === 'succeeded') {
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error('Error completo:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
+      alert(`Pago fallido: ${error.message || 'Error desconocido'}`);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4">
+      <CardElement className="border p-3 rounded mb-4" />
+      <button 
+        type="submit" 
+        disabled={!stripe || processing}
+        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-gray-300"
+      >
+        {processing ? 'Procesando...' : 'Pagar con Stripe'}
+      </button>
+    </form>
+  );
+};
+
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'mercadopago' | 'stripe'>('mercadopago');
   const router = useRouter();
 
-  // Inicializar Mercado Pago con tu clave pública
+  // Inicializar Mercado Pago
   useEffect(() => {
-    initMercadoPago(process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || '');
+    initMercadoPago(process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || '', {
+      locale: 'es-MX'
+    });
     
     // Cargar items del carrito desde localStorage
     const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
+    if (savedCart) setCartItems(JSON.parse(savedCart));
   }, []);
 
   // Calcular totales
   const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const shipping = 0; // Puedes ajustar la lógica de envío
-  const taxes = subtotal * 0.16; // IVA del 16%, ajusta según tu región
+  const shipping = 0;
+  const taxes = subtotal * 0.16;
   const total = subtotal + shipping + taxes;
 
   // Manejar cambio de cantidad
@@ -60,35 +145,47 @@ export default function CartPage() {
 
   // Crear preferencia de pago
   const createPaymentPreference = async () => {
+    if (cartItems.length === 0) return;
+    
+    setLoading(true);
     try {
       const response = await fetch('/api/create-preference', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: cartItems.map(item => ({
-            ...item,
-            product_id: item.id,  // Asegúrate de que esto coincida con tu estructura de datos
-
-
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image,
+            size: item.size,
+            color: item.color,
+            product_id: item.id,
           })),
           total: total,
         })
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Error al crear el pago');
       
       if (data.preferenceId) {
         setPreferenceId(data.preferenceId);
-        // Redirigir al checkout de Mercado Pago
-        window.location.href = data.checkoutUrl;
+        if (data.checkoutUrl) window.location.href = data.checkoutUrl;
       }
     } catch (error) {
-      console.error('Error al crear preferencia de pago:', error);
+      console.error('Error:', error);
       alert('No se pudo iniciar el pago. Intenta de nuevo.');
+    } finally {
+      setLoading(false);
     }
   };
+    // Manejar éxito de pago
+    const handlePaymentSuccess = () => {
+      localStorage.removeItem('cart');
+      router.push('/checkout/success');
+    };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -127,6 +224,7 @@ export default function CartPage() {
                         <button 
                           onClick={() => updateQuantity(item.id, item.quantity - 1)}
                           className="px-2 py-1"
+                          disabled={item.quantity <= 1}
                         >
                           -
                         </button>
@@ -183,19 +281,43 @@ export default function CartPage() {
               </div>
             </div>
             
-            <button 
-              onClick={createPaymentPreference}
-              className="w-full bg-black text-white py-2 rounded hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-              disabled={cartItems.length === 0}
-            >
-              Proceder al pago
-            </button>
+            <div className="mb-4">
+              <label className="block mb-2 font-medium">Método de pago</label>
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => setPaymentMethod('mercadopago')}
+                  className={`px-4 py-2 rounded ${paymentMethod === 'mercadopago' ? 'bg-black text-white' : 'bg-gray-200'}`}
+                >
+                  Mercado Pago
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('stripe')}
+                  className={`px-4 py-2 rounded ${paymentMethod === 'stripe' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+                >
+                  Stripe
+                </button>
+              </div>
+            </div>
 
-            {preferenceId && (
-              <Wallet
-                initialization={{ preferenceId: preferenceId }}
-                customization={{ texts: { valueProp: 'smart_option' } }}
-              />
+            {paymentMethod === 'mercadopago' ? (
+              <>
+                <button 
+                  onClick={createPaymentPreference}
+                  className="w-full bg-black text-white py-2 rounded hover:bg-gray-800 transition-colors disabled:bg-gray-300"
+                  disabled={cartItems.length === 0 || loading}
+                >
+                  {loading ? 'Procesando...' : 'Pagar con Mercado Pago'}
+                </button>
+                {preferenceId && (
+                  <div className="mt-4">
+                    <Wallet initialization={{ preferenceId }} />
+                  </div>
+                )}
+              </>
+            ) : (
+              <Elements stripe={stripePromise}>
+                <StripePaymentForm total={total} onSuccess={handlePaymentSuccess} />
+              </Elements>
             )}
           </div>
         </div>
