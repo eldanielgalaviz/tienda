@@ -2,12 +2,56 @@
 
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
-import { v4 as uuidv4 } from 'uuid';
+import { cookies } from 'next/headers';
+import { verify } from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 // Configuración de la conexión a la base de datos
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL
 });
+
+// Función para obtener el usuario actual a partir del token JWT
+async function getCurrentUser() {
+  try {
+    // Usar await con cookies() para evitar el error
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
+    
+    if (!token) {
+      console.log("No se encontró token de autenticación");
+      return null;
+    }
+    
+    // Verificar el token JWT
+    const decoded = verify(token, JWT_SECRET) as {
+      userId: string;
+      email: string;
+      isAdmin: boolean;
+    };
+    
+    // Verificar que el usuario existe en la base de datos
+    const result = await pool.query(
+      `SELECT id, email, first_name, last_name, is_admin 
+       FROM auth.users 
+       WHERE id = $1`,
+      [decoded.userId]
+    );
+    
+    if (result.rows.length === 0) {
+      console.log(`Usuario con ID ${decoded.userId} no encontrado en la base de datos`);
+      return null;
+    }
+    
+    // Devolver los datos del usuario
+    console.log(`Usuario encontrado: ${result.rows[0].first_name} ${result.rows[0].last_name} (${result.rows[0].id})`);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error al verificar usuario:', error);
+    return null;
+  }
+}
 
 // Función para actualizar el inventario
 async function updateInventory(items, client) {
@@ -86,63 +130,40 @@ async function registerTransaction(orderId, paymentIntentId, amount, status, cli
   }
 }
 
-// Función para obtener un ID de estado válido
-async function getValidOrderStatusId(client, statusName = null) {
+// Función para obtener o crear un estado de orden
+async function getOrCreateOrderStatus(client) {
   try {
-    // Si se proporciona un nombre específico, búscalo primero
-    if (statusName) {
-      // Intentar búsqueda exacta
-      const exactResult = await client.query(
-        'SELECT id FROM orders.order_statuses WHERE name = $1',
-        [statusName]
-      );
-      
-      if (exactResult.rows.length > 0) {
-        return exactResult.rows[0].id;
-      }
-      
-      // Intentar búsqueda insensible a mayúsculas/minúsculas
-      const caseInsensitiveResult = await client.query(
-        'SELECT id FROM orders.order_statuses WHERE LOWER(name) = LOWER($1)',
-        [statusName]
-      );
-      
-      if (caseInsensitiveResult.rows.length > 0) {
-        return caseInsensitiveResult.rows[0].id;
-      }
-    }
-    
-    // Si no encontramos el estado específico o no se proporcionó ninguno,
-    // buscar cualquier estado que pueda ser apropiado para una orden completada
-    const fallbackResult = await client.query(`
+    // Intentar obtener un estado completado/pagado existente
+    const statusQuery = `
       SELECT id FROM orders.order_statuses 
-      WHERE LOWER(name) IN ('completado', 'completed', 'procesando', 'processing', 'pagado', 'paid', 'enviado', 'shipped')
+      WHERE LOWER(name) IN ('completado', 'completed', 'pagado', 'paid')
       LIMIT 1
-    `);
+    `;
     
-    if (fallbackResult.rows.length > 0) {
-      return fallbackResult.rows[0].id;
+    const statusResult = await client.query(statusQuery);
+    
+    if (statusResult.rows.length > 0) {
+      const statusId = statusResult.rows[0].id;
+      console.log(`Estado de orden encontrado: ${statusId}`);
+      return statusId;
     }
     
-    // Si todavía no encontramos un estado válido, obtener cualquier estado (como último recurso)
-    const anyStatusResult = await client.query(
-      'SELECT id FROM orders.order_statuses LIMIT 1'
-    );
+    console.log("No se encontró estado de orden. Creando nuevo estado 'Completado'");
     
-    if (anyStatusResult.rows.length > 0) {
-      return anyStatusResult.rows[0].id;
-    }
+    // Si no existe, crear un nuevo estado
+    const newStatusQuery = `
+      INSERT INTO orders.order_statuses (name, description, color, is_active)
+      VALUES ('Completado', 'Pedido completado y pagado', '#10B981', true)
+      RETURNING id
+    `;
     
-    // Si no hay estados en la tabla, crear uno
-    const newStatusResult = await client.query(
-      `INSERT INTO orders.order_statuses (name, color) 
-       VALUES ('Completado', '#10B981') 
-       RETURNING id`
-    );
+    const newStatusResult = await client.query(newStatusQuery);
+    const newStatusId = newStatusResult.rows[0].id;
     
-    return newStatusResult.rows[0].id;
+    console.log(`Nuevo estado de orden creado: ${newStatusId}`);
+    return newStatusId;
   } catch (error) {
-    console.error('Error obteniendo estado de orden válido:', error);
+    console.error('Error al obtener/crear estado de orden:', error);
     throw error;
   }
 }
@@ -151,6 +172,10 @@ export async function POST(request) {
   const dbClient = await pool.connect();
 
   try {
+    // Obtener el usuario actual
+    const currentUser = await getCurrentUser();
+    console.log("Usuario actual:", currentUser?.id || "No autenticado");
+
     const { 
       paymentIntentId, 
       orderId,
@@ -168,10 +193,8 @@ export async function POST(request) {
 
     await dbClient.query('BEGIN');
 
-    // Obtener un estado de orden válido
-    const statusId = await getValidOrderStatusId(dbClient, 'Completado');
-    
-    console.log(`Usando estado de orden con ID: ${statusId}`);
+    // Obtener o crear estado de orden
+    const statusId = await getOrCreateOrderStatus(dbClient);
 
     // Si no hay un orderId, creamos una nueva orden
     let orderIdToUse = orderId;
@@ -180,7 +203,7 @@ export async function POST(request) {
       // Generar número de orden
       const orderNumber = `FT-${Date.now()}`;
       
-      // Calcular valores
+      // Calcular subtotal, impuestos, etc.
       const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const tax = subtotal * 0.16; // 16% IVA
       const shippingCost = 0; // O el valor que corresponda
@@ -193,7 +216,7 @@ export async function POST(request) {
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP) RETURNING id`,
         [
           orderNumber,
-          items[0].user_id || null, // Si hay user_id en los items
+          currentUser?.id, // Usamos el ID del usuario autenticado
           statusId,
           subtotal,
           tax,
@@ -205,8 +228,9 @@ export async function POST(request) {
       );
       
       orderIdToUse = newOrderResult.rows[0].id;
+      console.log(`Nueva orden creada: ${orderIdToUse}`);
       
-      // Insertar items de la orden con validación
+      // Insertar items de la orden
       for (const item of items) {
         await dbClient.query(
           `INSERT INTO orders.order_items (
@@ -228,10 +252,13 @@ export async function POST(request) {
         `UPDATE orders.orders 
          SET payment_status = 'paid', 
              status_id = $1,
+             user_id = COALESCE(user_id, $2), -- Actualizar user_id solo si es NULL
              updated_at = CURRENT_TIMESTAMP
-         WHERE id = $2`,
-        [statusId, orderIdToUse]
+         WHERE id = $3`,
+        [statusId, currentUser?.id, orderIdToUse]
       );
+      
+      console.log(`Orden existente actualizada: ${orderIdToUse}`);
     }
     
     // Actualizar inventario

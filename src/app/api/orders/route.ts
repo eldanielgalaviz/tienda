@@ -29,13 +29,17 @@ export async function GET(request) {
         o.id,
         o.order_number,
         o.created_at,
-        COALESCE(u.first_name || ' ' || u.last_name, 'Cliente sin cuenta') AS customer_name,
+        CASE
+          WHEN u.id IS NOT NULL THEN u.first_name || ' ' || u.last_name
+          ELSE 'Cliente sin cuenta'
+        END AS customer_name,
         COALESCE(u.email, 'Sin email') AS customer_email,
         o.total,
         os.name AS status,
         os.color AS status_color,
         o.payment_method,
-        o.payment_status
+        o.payment_status,
+        o.user_id -- Incluir user_id para diagnóstico
       FROM 
         orders.orders o
       LEFT JOIN 
@@ -70,6 +74,10 @@ export async function GET(request) {
     
     console.log(`Encontrados ${result.rows.length} pedidos`);
     
+    // Log para diagnóstico: verificar cuántos pedidos tienen user_id NULL
+    const ordersWithoutUserId = result.rows.filter(order => !order.user_id).length;
+    console.log(`Pedidos sin user_id: ${ordersWithoutUserId} de ${result.rows.length}`);
+    
     // Formatear los datos para que coincidan con el formato esperado por el componente
     const formattedOrders = result.rows.map(order => ({
       id: order.order_number || order.id,
@@ -81,7 +89,8 @@ export async function GET(request) {
       statusColor: order.status_color,
       paymentMethod: order.payment_method,
       paymentStatus: order.payment_status,
-      orderId: order.id // ID real en la base de datos (UUID)
+      orderId: order.id, // ID real en la base de datos (UUID)
+      hasUser: !!order.user_id // Indicador para diagnóstico
     }));
 
     return NextResponse.json({ orders: formattedOrders }, { status: 200 });
@@ -125,9 +134,13 @@ async function getOrderDetails(id) {
         o.completed_at,
         o.cancelled_at,
         o.cancellation_reason,
+        o.user_id,
         os.name AS status,
         os.color AS status_color,
-        COALESCE(u.first_name || ' ' || u.last_name, 'Cliente sin cuenta') AS customer_name,
+        CASE
+          WHEN u.id IS NOT NULL THEN u.first_name || ' ' || u.last_name
+          ELSE 'Cliente sin cuenta'
+        END AS customer_name,
         COALESCE(u.email, 'Sin email') AS customer_email,
         u.phone AS customer_phone
       FROM 
@@ -140,7 +153,7 @@ async function getOrderDetails(id) {
         ${isUuid ? 'o.id = $1::uuid' : 'o.order_number = $1'}
     `;
 
-    console.log("Consulta de pedido:", orderQuery);
+    console.log("Consulta de pedido:", orderQuery.replace(/\s+/g, ' '));
     
     const orderResult = await pool.query(orderQuery, [id]);
     
@@ -150,7 +163,7 @@ async function getOrderDetails(id) {
     }
 
     const order = orderResult.rows[0];
-    console.log("Pedido encontrado:", order.id, order.order_number);
+    console.log("Pedido encontrado:", order.id, order.order_number, "User ID:", order.user_id);
 
     // Obtenemos los productos incluidos en el pedido
     const orderItemsQuery = `
@@ -236,6 +249,7 @@ async function getOrderDetails(id) {
       completedAt: order.completed_at,
       cancelledAt: order.cancelled_at,
       cancellationReason: order.cancellation_reason,
+      userId: order.user_id, // Incluir para diagnóstico
       items: orderItemsResult.rows.map(item => ({
         id: item.id,
         productName: item.product_name || 'Producto desconocido',

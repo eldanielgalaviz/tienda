@@ -20,11 +20,34 @@ interface CartItem {
 }
 
 // Componente de formulario de pago con Stripe
+// Componente actualizado StripePaymentForm para el carrito
+
 const StripePaymentForm = ({ total, items, onSuccess }: { total: number, items: CartItem[], onSuccess: () => void }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [user, setUser] = useState(null);
+
+  // Obtener datos del usuario actual
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch('/api/auth/me');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            setUser(data.user);
+            console.log("Usuario obtenido para el pago:", data.user.id);
+          }
+        }
+      } catch (error) {
+        console.error("Error al obtener usuario:", error);
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -38,7 +61,10 @@ const StripePaymentForm = ({ total, items, onSuccess }: { total: number, items: 
       const response = await fetch('/api/create-stripe-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: Math.round(total * 100) })
+        body: JSON.stringify({ 
+          amount: Math.round(total * 100),
+          userId: user?.id // Incluir el ID del usuario si está disponible
+        })
       });
 
       if (!response.ok) {
@@ -53,7 +79,8 @@ const StripePaymentForm = ({ total, items, onSuccess }: { total: number, items: 
         payment_method: {
           card: elements.getElement(CardElement)!,
           billing_details: {
-            name: 'Cliente de prueba',
+            name: user ? `${user.first_name} ${user.last_name}` : 'Cliente',
+            email: user?.email
           },
         }
       });
@@ -71,7 +98,8 @@ const StripePaymentForm = ({ total, items, onSuccess }: { total: number, items: 
           product_id: item.id,
           price: item.price,
           quantity: item.quantity,
-          total: item.price * item.quantity
+          total: item.price * item.quantity,
+          user_id: user?.id // Incluir el ID del usuario en cada item
         }));
 
         // Llamar a nuestra API para registrar la venta y actualizar inventario
@@ -81,7 +109,8 @@ const StripePaymentForm = ({ total, items, onSuccess }: { total: number, items: 
           body: JSON.stringify({
             paymentIntentId: paymentIntent.id,
             items: orderItems,
-            amount: total
+            amount: total,
+            userId: user?.id // Incluir el ID del usuario en la confirmación
           })
         });
 
