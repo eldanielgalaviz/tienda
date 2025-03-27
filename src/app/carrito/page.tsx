@@ -7,17 +7,6 @@ import { useRouter } from 'next/navigation';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 // Configuración de Stripe
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-  size?: string;
-  color?: string;
-}
-// Configuración de Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY || '');
 
 interface CartItem {
@@ -31,22 +20,25 @@ interface CartItem {
 }
 
 // Componente de formulario de pago con Stripe
-const StripePaymentForm = ({ total, onSuccess }: { total: number, onSuccess: () => void }) => {
+const StripePaymentForm = ({ total, items, onSuccess }: { total: number, items: CartItem[], onSuccess: () => void }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!stripe || !elements) return;
 
     setProcessing(true);
+    setErrorMessage('');
 
     try {
+      // 1. Crear intent de pago
       const response = await fetch('/api/create-stripe-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: Math.round(total * 100) }) // Asegura número entero
+        body: JSON.stringify({ amount: Math.round(total * 100) })
       });
 
       if (!response.ok) {
@@ -56,30 +48,54 @@ const StripePaymentForm = ({ total, onSuccess }: { total: number, onSuccess: () 
 
       const { clientSecret } = await response.json();
 
+      // 2. Confirmar pago con Stripe
       const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement)!,
           billing_details: {
-            name: 'Cliente de prueba', // Agrega datos mínimos requeridos
+            name: 'Cliente de prueba',
           },
         }
       });
 
       if (error) {
         console.error('Error de Stripe:', error);
+        setErrorMessage(error.message || 'Error al procesar el pago');
         throw error;
       }
 
+      // 3. Si el pago fue exitoso, actualizar inventario y registrar venta
       if (paymentIntent.status === 'succeeded') {
+        // Convertir items del carrito al formato necesario para la API
+        const orderItems = items.map(item => ({
+          product_id: item.id,
+          price: item.price,
+          quantity: item.quantity,
+          total: item.price * item.quantity
+        }));
+
+        // Llamar a nuestra API para registrar la venta y actualizar inventario
+        const confirmResponse = await fetch('/api/payments/stripe/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paymentIntentId: paymentIntent.id,
+            items: orderItems,
+            amount: total
+          })
+        });
+
+        if (!confirmResponse.ok) {
+          console.error('Error al confirmar venta en sistema:', await confirmResponse.json());
+          // Aún así podemos continuar, ya que el pago se realizó correctamente
+        }
+
+        // 4. Notificar éxito y redirigir
         onSuccess();
       }
     } catch (error: any) {
-      console.error('Error completo:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response
-      });
-      alert(`Pago fallido: ${error.message || 'Error desconocido'}`);
+      console.error('Error completo:', error);
+      setErrorMessage(error.message || 'Error desconocido');
     } finally {
       setProcessing(false);
     }
@@ -88,6 +104,11 @@ const StripePaymentForm = ({ total, onSuccess }: { total: number, onSuccess: () 
   return (
     <form onSubmit={handleSubmit} className="mt-4">
       <CardElement className="border p-3 rounded mb-4" />
+      {errorMessage && (
+        <div className="text-red-500 text-sm mb-4">
+          {errorMessage}
+        </div>
+      )}
       <button 
         type="submit" 
         disabled={!stripe || processing}
@@ -181,11 +202,12 @@ export default function CartPage() {
       setLoading(false);
     }
   };
-    // Manejar éxito de pago
-    const handlePaymentSuccess = () => {
-      localStorage.removeItem('cart');
-      router.push('/checkout/success');
-    };
+
+  // Manejar éxito de pago
+  const handlePaymentSuccess = () => {
+    localStorage.removeItem('cart');
+    router.push('/checkout/success');
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -316,7 +338,11 @@ export default function CartPage() {
               </>
             ) : (
               <Elements stripe={stripePromise}>
-                <StripePaymentForm total={total} onSuccess={handlePaymentSuccess} />
+                <StripePaymentForm 
+                  total={total} 
+                  items={cartItems}
+                  onSuccess={handlePaymentSuccess} 
+                />
               </Elements>
             )}
           </div>
