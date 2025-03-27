@@ -1,3 +1,5 @@
+// src/app/api/orders/route.js
+
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
 
@@ -11,6 +13,7 @@ export async function GET(request) {
     // Obtener los parámetros de la URL
     const { searchParams } = new URL(request.url);
     const orderId = searchParams.get('id');
+    const limit = parseInt(searchParams.get('limit') || '100'); // Aumentamos el límite por defecto
 
     // Si se proporciona un ID de pedido, obtener los detalles de ese pedido
     if (orderId) {
@@ -26,42 +29,58 @@ export async function GET(request) {
         o.id,
         o.order_number,
         o.created_at,
-        u.first_name || ' ' || u.last_name AS customer_name,
-        u.email AS customer_email,
+        COALESCE(u.first_name || ' ' || u.last_name, 'Cliente sin cuenta') AS customer_name,
+        COALESCE(u.email, 'Sin email') AS customer_email,
         o.total,
         os.name AS status,
         os.color AS status_color,
-        o.payment_method
+        o.payment_method,
+        o.payment_status
       FROM 
         orders.orders o
-      JOIN 
+      LEFT JOIN 
         auth.users u ON o.user_id = u.id
-      JOIN 
+      LEFT JOIN 
         orders.order_statuses os ON o.status_id = os.id
     `;
     
     const queryParams = [];
+    let paramIndex = 1;
     
     // Añadir filtro de estado si se proporciona
     if (status && status !== 'all') {
-      query += ` WHERE os.name = $1`;
+      query += ` WHERE LOWER(os.name) = LOWER($${paramIndex})`;
       queryParams.push(status);
+      paramIndex++;
     }
     
+    // Ordenar por fecha de creación (más recientes primero)
     query += ` ORDER BY o.created_at DESC`;
+    
+    // Limitar el número de resultados si se especifica
+    if (limit > 0) {
+      query += ` LIMIT $${paramIndex}`;
+      queryParams.push(limit);
+    }
+    
+    console.log("Ejecutando consulta de pedidos:", query);
+    console.log("Parámetros:", queryParams);
     
     const result = await pool.query(query, queryParams);
     
+    console.log(`Encontrados ${result.rows.length} pedidos`);
+    
     // Formatear los datos para que coincidan con el formato esperado por el componente
     const formattedOrders = result.rows.map(order => ({
-      id: order.order_number,
-      date: order.created_at.toISOString().split('T')[0],
+      id: order.order_number || order.id,
+      date: order.created_at,
       customer: order.customer_name,
       email: order.customer_email,
       total: parseFloat(order.total),
-      status: order.status.toLowerCase(),
+      status: order.status?.toLowerCase() || 'pendiente',
       statusColor: order.status_color,
       paymentMethod: order.payment_method,
+      paymentStatus: order.payment_status,
       orderId: order.id // ID real en la base de datos (UUID)
     }));
 
@@ -78,7 +97,16 @@ export async function GET(request) {
 // Función para obtener los detalles de un pedido específico
 async function getOrderDetails(id) {
   try {
+    console.log("Obteniendo detalles del pedido con ID:", id);
+    
+    // Verificar si el ID podría ser un UUID
+    const isUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const isUuid = isUuidPattern.test(id);
+    
+    console.log("¿El ID parece un UUID?", isUuid);
+    
     // Primero obtenemos la información básica del pedido
+    // Modificamos la consulta para manejar tanto UUIDs como strings
     const orderQuery = `
       SELECT 
         o.id,
@@ -95,28 +123,34 @@ async function getOrderDetails(id) {
         o.tracking_number,
         o.notes,
         o.completed_at,
+        o.cancelled_at,
+        o.cancellation_reason,
         os.name AS status,
         os.color AS status_color,
-        u.first_name || ' ' || u.last_name AS customer_name,
-        u.email AS customer_email,
+        COALESCE(u.first_name || ' ' || u.last_name, 'Cliente sin cuenta') AS customer_name,
+        COALESCE(u.email, 'Sin email') AS customer_email,
         u.phone AS customer_phone
       FROM 
         orders.orders o
-      JOIN 
+      LEFT JOIN 
         orders.order_statuses os ON o.status_id = os.id
-      JOIN 
+      LEFT JOIN 
         auth.users u ON o.user_id = u.id
       WHERE 
-        o.id = $1 OR o.order_number = $1
+        ${isUuid ? 'o.id = $1::uuid' : 'o.order_number = $1'}
     `;
 
+    console.log("Consulta de pedido:", orderQuery);
+    
     const orderResult = await pool.query(orderQuery, [id]);
     
     if (orderResult.rows.length === 0) {
+      console.log("No se encontró ningún pedido con ID:", id);
       return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
     }
 
     const order = orderResult.rows[0];
+    console.log("Pedido encontrado:", order.id, order.order_number);
 
     // Obtenemos los productos incluidos en el pedido
     const orderItemsQuery = `
@@ -143,17 +177,18 @@ async function getOrderDetails(id) {
         ) AS product_image
       FROM 
         orders.order_items oi
-      JOIN 
+      LEFT JOIN 
         products.products p ON oi.product_id = p.id
       LEFT JOIN 
         products.product_variants pv ON oi.variant_id = pv.id
       WHERE 
-        oi.order_id = $1
+        oi.order_id = $1::uuid
       ORDER BY 
         oi.created_at
     `;
 
     const orderItemsResult = await pool.query(orderItemsQuery, [order.id]);
+    console.log(`Encontrados ${orderItemsResult.rows.length} productos en el pedido`);
 
     // Obtenemos la dirección de envío
     const addressQuery = `
@@ -167,7 +202,7 @@ async function getOrderDetails(id) {
       FROM 
         auth.addresses a
       WHERE 
-        a.id = $1
+        a.id = $1::uuid
     `;
 
     let shippingAddress = null;
@@ -180,18 +215,18 @@ async function getOrderDetails(id) {
 
     // Formatear la respuesta
     const orderDetail = {
-      id: order.order_number,
+      id: order.order_number || order.id,
       realId: order.id,
       date: order.created_at,
       customer: order.customer_name,
       email: order.customer_email,
       phone: order.customer_phone,
-      subtotal: parseFloat(order.subtotal),
-      tax: parseFloat(order.tax),
-      shipping: parseFloat(order.shipping_cost),
-      discount: parseFloat(order.discount),
-      total: parseFloat(order.total),
-      status: order.status.toLowerCase(),
+      subtotal: parseFloat(order.subtotal || 0),
+      tax: parseFloat(order.tax || 0),
+      shipping: parseFloat(order.shipping_cost || 0),
+      discount: parseFloat(order.discount || 0),
+      total: parseFloat(order.total || 0),
+      status: (order.status || 'pendiente').toLowerCase(),
       statusColor: order.status_color,
       paymentMethod: order.payment_method,
       paymentStatus: order.payment_status,
@@ -199,16 +234,18 @@ async function getOrderDetails(id) {
       trackingNumber: order.tracking_number,
       notes: order.notes,
       completedAt: order.completed_at,
+      cancelledAt: order.cancelled_at,
+      cancellationReason: order.cancellation_reason,
       items: orderItemsResult.rows.map(item => ({
         id: item.id,
-        productName: item.product_name,
+        productName: item.product_name || 'Producto desconocido',
         productSlug: item.product_slug,
         variantDetails: item.variant_details,
         image: item.product_image,
-        price: parseFloat(item.price),
-        quantity: parseInt(item.quantity),
-        discount: parseFloat(item.discount),
-        total: parseFloat(item.total)
+        price: parseFloat(item.price || 0),
+        quantity: parseInt(item.quantity || 0),
+        discount: parseFloat(item.discount || 0),
+        total: parseFloat(item.total || 0)
       })),
       shippingAddress: shippingAddress
     };
