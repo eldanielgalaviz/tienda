@@ -1,0 +1,65 @@
+{
+  "general": {
+    "storeName": "Fashion Treats",
+    "storeEmail": "info@fashiontreats.mx",
+    "storePhone": "+52 55 1234 5678",
+    "storeCurrency": "MXN",
+    "storeAddress": "Calle Principal 123, Ciudad de México, CDMX, 01000, México",
+    "storeDescription": "Fashion Treats es tu destino para moda exclusiva y sneakers de edición limitada."
+  },
+  "seo": {
+    "metaTitle": "Fashion Treats | Sneakers y Moda Exclusiva",
+    "metaDescription": "Fashion Treats es tu destino para sneakers de edición limitada y moda exclusiva en México. Envíos gratis a todo el país.",
+    "metaKeywords": "sneakers, moda, ropa, accesorios, zapatillas, México"
+  },
+  "shipping": {
+    "standardShipping": {
+      "price": 160,
+      "enabled": true
+    },
+    "expressShipping": {
+      "price": 250,
+      "enabled": true
+    },
+    "storePickup": {
+      "price": 0,
+      "enabled": true
+    },
+    "integrations": {
+      "estafeta": true,
+      "dhl": false,
+      "fedex": false
+    }
+  },
+  "payment": {
+    "methods": {
+      "cards": true,
+      "oxxo": true,
+      "transfer": true,
+      "paypal": true
+    },
+    "mercadoPagoKey": "••••••••••••••••",
+    "conektaKey": "••••••••••••••••",
+    "stripeKey": "••••••••••••••••"
+  },
+  "notifications": {
+    "welcome": true,
+    "orderConfirmation": true,
+    "shippingUpdate": true,
+    "abandonedCart": true,
+    "newsletter": true,
+    "smtpHost": "smtp.gmail.com",
+    "smtpPort": "587",
+    "smtpSecurity": "TLS",
+    "smtpUser": "info@fashiontreats.mx",
+    "smtpPassword": "••••••••••••••••"
+  },
+  "users": {
+    "sessionTimeout": 30,
+    "security": {
+      "twoFactor": false,
+      "accountLock": true,
+      "passwordPolicy": true
+    }
+  }
+}
