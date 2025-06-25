@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useRouter } from "next/navigation";
 import { User, Package, Heart, CreditCard, LogOut, Settings, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -85,14 +85,14 @@ const mockAddresses = [
 const AccountPage = () => {
   const [activeTab, setActiveTab] = useState("profile")
   const { toast } = useToast()
-  const navigate = useNavigate()
+    const router = useRouter() 
 
   const handleLogout = () => {
     toast({
       title: "Sesión cerrada",
       description: "Has cerrado sesión correctamente.",
     })
-    navigate("/login")
+    router.push("/login")
   }
 
   const getStatusBadge = (status: string) => {

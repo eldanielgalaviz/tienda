@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useRouter } from "next/navigation";
 import { CreditCard, Truck, Check, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,7 +17,7 @@ import { useToast } from "@/components/ui/use-toast"
 const CheckoutPage = () => {
   const { items, getTotal, clearCart } = useCart()
   const { toast } = useToast()
-  const navigate = useNavigate()
+  const router = useRouter() 
 
   const [activeStep, setActiveStep] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -67,7 +67,7 @@ const CheckoutPage = () => {
         description: "Recibirás un correo con los detalles de tu compra.",
       })
 
-      navigate("/cuenta/pedidos")
+      router.push("/cuenta/pedidos")
     }, 2000)
   }
 
@@ -76,7 +76,7 @@ const CheckoutPage = () => {
   const total = subtotal + shipping
 
   if (items.length === 0) {
-    navigate("/carrito")
+    router.push("/carrito")
     return null
   }
 
