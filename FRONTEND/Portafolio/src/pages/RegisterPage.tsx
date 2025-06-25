@@ -3,7 +3,8 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,7 +26,7 @@ const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false)
 
   const { toast } = useToast()
-  const navigate = useNavigate()
+  const router = useRouter()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -35,7 +36,6 @@ const RegisterPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validaciones básicas
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
       toast({
         title: "Error",
@@ -65,7 +65,6 @@ const RegisterPage = () => {
 
     setIsLoading(true)
 
-    // Simulación de registro
     setTimeout(() => {
       setIsLoading(false)
 
@@ -74,7 +73,7 @@ const RegisterPage = () => {
         description: "Tu cuenta ha sido creada correctamente.",
       })
 
-      navigate("/login")
+      router.push("/login")
     }, 1500)
   }
 
@@ -148,11 +147,11 @@ const RegisterPage = () => {
                 className="text-sm text-gray-600 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 Acepto los{" "}
-                <Link to="/terminos" className="text-black font-medium hover:underline">
+                <Link href="/terminos" className="text-black font-medium hover:underline">
                   Términos y Condiciones
                 </Link>{" "}
                 y la{" "}
-                <Link to="/privacidad" className="text-black font-medium hover:underline">
+                <Link href="/privacidad" className="text-black font-medium hover:underline">
                   Política de Privacidad
                 </Link>
               </label>
@@ -177,7 +176,7 @@ const RegisterPage = () => {
           <div className="text-center mt-6">
             <p className="text-sm text-gray-600">
               ¿Ya tienes una cuenta?{" "}
-              <Link to="/login" className="text-black font-medium hover:underline">
+              <Link href="/login" className="text-black font-medium hover:underline">
                 Iniciar Sesión
               </Link>
             </p>
@@ -189,4 +188,3 @@ const RegisterPage = () => {
 }
 
 export default RegisterPage
-

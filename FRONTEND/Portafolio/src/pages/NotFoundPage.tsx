@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 const NotFoundPage = () => {
@@ -10,10 +10,10 @@ const NotFoundPage = () => {
         <p className="text-gray-600 mb-8">Lo sentimos, la página que estás buscando no existe o ha sido movida.</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button asChild>
-            <Link to="/">Volver al Inicio</Link>
+            <Link href="/">Volver al Inicio</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link to="/tienda">Ir a la Tienda</Link>
+            <Link href="/tienda">Ir a la Tienda</Link>
           </Button>
         </div>
       </div>
@@ -22,4 +22,3 @@ const NotFoundPage = () => {
 }
 
 export default NotFoundPage
-

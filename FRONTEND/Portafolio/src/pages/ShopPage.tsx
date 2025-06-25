@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from "react-router-dom"
+import { useParams, useRouter } from "next/navigation" // Next.js 13+ app router
 import { Filter, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -12,15 +12,19 @@ import ProductCard from "@/components/product/ProductCard"
 import type { Product } from "@/types"
 
 const ShopPage = () => {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const params = useParams()
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [priceRange, setPriceRange] = useState([0, 10000])
   const [filtersOpen, setFiltersOpen] = useState(false)
 
-  const categoria = searchParams.get("categoria") || ""
-  const etiqueta = searchParams.get("etiqueta") || ""
-  const ordenar = searchParams.get("ordenar") || "recientes"
+  // Obtener parámetros de la URL dinámica
+  // Estructura esperada: /shop/[categoria]/[etiqueta]/[ordenar]
+  // o /shop/[categoria] o /shop (todos opcionales)
+  const categoria = (params?.categoria as string) || ""
+  const etiqueta = (params?.etiqueta as string) || ""
+  const ordenar = (params?.ordenar as string) || "recientes"
 
   useEffect(() => {
     // Simulación de carga de datos
@@ -141,12 +145,12 @@ const ShopPage = () => {
 
         // Filtrar por categoría si está especificada
         let filteredProducts = mockProducts
-        if (categoria) {
+        if (categoria && categoria !== "todos") {
           filteredProducts = filteredProducts.filter((p) => p.category === categoria)
         }
 
         // Filtrar por etiqueta si está especificada
-        if (etiqueta) {
+        if (etiqueta && etiqueta !== "todos") {
           filteredProducts = filteredProducts.filter((p) => p.tags.includes(etiqueta))
         }
 
@@ -169,17 +173,41 @@ const ShopPage = () => {
   }, [categoria, etiqueta, ordenar])
 
   const updateFilters = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams)
-    if (value) {
-      params.set(key, value)
-    } else {
-      params.delete(key)
+    // Construir nueva URL basada en parámetros dinámicos
+    let newPath = "/shop"
+    
+    const newCategoria = key === "categoria" ? value : categoria
+    const newEtiqueta = key === "etiqueta" ? value : etiqueta
+    const newOrdenar = key === "ordenar" ? value : ordenar
+
+    // Construir path dinámico
+    if (newCategoria && newCategoria !== "todos") {
+      newPath += `/${newCategoria}`
+      
+      if (newEtiqueta && newEtiqueta !== "todos") {
+        newPath += `/${newEtiqueta}`
+        
+        if (newOrdenar && newOrdenar !== "recientes") {
+          newPath += `/${newOrdenar}`
+        }
+      } else if (newOrdenar && newOrdenar !== "recientes") {
+        newPath += `/todos/${newOrdenar}`
+      }
+    } else if (newEtiqueta && newEtiqueta !== "todos") {
+      newPath += `/todos/${newEtiqueta}`
+      
+      if (newOrdenar && newOrdenar !== "recientes") {
+        newPath += `/${newOrdenar}`
+      }
+    } else if (newOrdenar && newOrdenar !== "recientes") {
+      newPath += `/todos/todos/${newOrdenar}`
     }
-    setSearchParams(params)
+
+    router.push(newPath)
   }
 
   const clearFilters = () => {
-    setSearchParams({})
+    router.push("/shop")
     setPriceRange([0, 10000])
   }
 
@@ -220,7 +248,7 @@ const ShopPage = () => {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="cat-all"
-                        checked={!categoria}
+                        checked={!categoria || categoria === "todos"}
                         onCheckedChange={() => updateFilters("categoria", "")}
                       />
                       <label htmlFor="cat-all" className="text-sm cursor-pointer">
@@ -267,7 +295,7 @@ const ShopPage = () => {
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="tag-all"
-                        checked={!etiqueta}
+                        checked={!etiqueta || etiqueta === "todos"}
                         onCheckedChange={() => updateFilters("etiqueta", "")}
                       />
                       <label htmlFor="tag-all" className="text-sm cursor-pointer">
@@ -354,7 +382,7 @@ const ShopPage = () => {
                             <div className="flex items-center space-x-2">
                               <Checkbox
                                 id="m-cat-all"
-                                checked={!categoria}
+                                checked={!categoria || categoria === "todos"}
                                 onCheckedChange={() => {
                                   updateFilters("categoria", "")
                                   setFiltersOpen(false)
@@ -413,7 +441,7 @@ const ShopPage = () => {
                             <div className="flex items-center space-x-2">
                               <Checkbox
                                 id="m-tag-all"
-                                checked={!etiqueta}
+                                checked={!etiqueta || etiqueta === "todos"}
                                 onCheckedChange={() => {
                                   updateFilters("etiqueta", "")
                                   setFiltersOpen(false)
@@ -516,7 +544,7 @@ const ShopPage = () => {
             {/* Active Filters */}
             {(categoria || etiqueta) && (
               <div className="flex flex-wrap gap-2 mb-6">
-                {categoria && (
+                {categoria && categoria !== "todos" && (
                   <div className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm">
                     <span>Categoría: {getCategoryTitle()}</span>
                     <Button
@@ -529,7 +557,7 @@ const ShopPage = () => {
                     </Button>
                   </div>
                 )}
-                {etiqueta && (
+                {etiqueta && etiqueta !== "todos" && (
                   <div className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-sm">
                     <span>Etiqueta: {etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1)}</span>
                     <Button
@@ -580,4 +608,3 @@ const ShopPage = () => {
 }
 
 export default ShopPage
-

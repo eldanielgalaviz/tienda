@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "react-router-dom"
+import { useParams } from "next/navigation"  // Next.js 13+ app router
+import Link from "next/link"
+
 import { ChevronLeft, ChevronRight, Star, Truck, ShieldCheck, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -13,7 +15,8 @@ import ProductCard from "@/components/product/ProductCard"
 import type { Product } from "@/types"
 
 const ProductPage = () => {
-  const { id } = useParams<{ id: string }>()
+
+  const { id } = useParams() as { id: string }
   const [product, setProduct] = useState<Product | null>(null)
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
   const [selectedVariant, setSelectedVariant] = useState<string>("")
