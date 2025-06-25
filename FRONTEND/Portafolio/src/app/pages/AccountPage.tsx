@@ -16,7 +16,7 @@ const mockOrders = [
     id: "ORD-001",
     date: "2023-05-15",
     status: "completed",
-    total: 3999,
+    total: 3999,  
     items: [{ name: "Air Jordan 1 High OG", variant: "Talla 8", quantity: 1, price: 3999 }],
   },
   {

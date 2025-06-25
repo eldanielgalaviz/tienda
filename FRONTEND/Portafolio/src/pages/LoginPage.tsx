@@ -3,7 +3,8 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import Link from "next/link";
+import { useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,7 +19,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false)
 
   const { toast } = useToast()
-  const navigate = useNavigate()
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,7 +45,7 @@ const LoginPage = () => {
           title: "Inicio de sesión exitoso",
           description: "Bienvenido de nuevo.",
         })
-        navigate("/cuenta")
+        router.push("/cuenta")
       } else {
         toast({
           title: "Error de inicio de sesión",

@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useRouter } from "next/navigation"
+import Link from "next/link";
 import { Trash2, Plus, Minus, ArrowRight, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast"
 const CartPage = () => {
   const { items, removeItem, updateQuantity, getTotal, clearCart } = useCart()
   const { toast } = useToast()
-  const navigate = useNavigate()
+  const router = useRouter()
   const [couponCode, setCouponCode] = useState("")
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false)
 
@@ -196,7 +197,7 @@ const CartPage = () => {
                 </Button>
               </div>
 
-              <Button className="w-full" size="lg" onClick={() => navigate("/checkout")}>
+              <Button className="w-full" size="lg" onClick={() => router.push("/checkout")}>
                 Proceder al pago
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
