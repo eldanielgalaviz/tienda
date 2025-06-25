@@ -86,3 +86,5 @@ export async function POST(req: Request) {
     }
   } catch (err: any) {
     console.error(`⚠️ Webhook signature verification failed: ${err.message}`);
+  }
+}

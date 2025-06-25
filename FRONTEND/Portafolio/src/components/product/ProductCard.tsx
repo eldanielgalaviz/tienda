@@ -8,7 +8,8 @@ import Link from "next/link"
 import { Heart, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
-import { useCart } from "@/hooks/use-cart"
+import useCart from "@/hooks/use-cart";
+
 import type { Product } from "@/types"
 
 interface ProductCardProps {
