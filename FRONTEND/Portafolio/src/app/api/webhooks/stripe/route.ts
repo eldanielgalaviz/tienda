@@ -69,6 +69,26 @@ async function updateOrderStatus(paymentIntentId: string) {
   }
 }
 
+// export async function POST(req: Request) {
+//   const body = await req.text();
+//   const headersList = headers();
+//   const signature = headersList.get('stripe-signature') as string;
+
+//   let event: Stripe.Event;
+
+//   try {
+//     // Verificar que el evento viene de Stripe
+//     if (endpointSecret) {
+//       event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
+//     } else {
+//       // En desarrollo podemos saltar la verificación de firma
+//       event = JSON.parse(body) as Stripe.Event;
+//     }
+//   } catch (err: any) {
+//     console.error(`⚠️ Webhook signature verification failed: ${err.message}`);
+//   }
+// }
+
 export async function POST(req: Request) {
   const body = await req.text();
   const headersList = headers();
@@ -77,14 +97,21 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
 
   try {
-    // Verificar que el evento viene de Stripe
     if (endpointSecret) {
       event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
     } else {
-      // En desarrollo podemos saltar la verificación de firma
       event = JSON.parse(body) as Stripe.Event;
     }
+
+    // Aquí procesa el evento, por ejemplo:
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      await updateOrderStatus(paymentIntent.id);
+    }
+
+    return NextResponse.json({ received: true });
   } catch (err: any) {
     console.error(`⚠️ Webhook signature verification failed: ${err.message}`);
+    return NextResponse.json({ error: err.message }, { status: 400 });
   }
 }

@@ -1,7 +1,8 @@
 // src/app/api/admin/settings/route.ts
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
+
 import { authOptions } from "@/lib/auth";
 
 // Configuración de la conexión a la base de datos
