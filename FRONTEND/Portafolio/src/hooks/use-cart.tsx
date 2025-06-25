@@ -1,25 +1,22 @@
-// src/hooks/use-mobile.ts
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-export function useMobile() {
-  const [isMobile, setIsMobile] = useState(false);
+export function useCart() {
+  const [items, setItems] = useState<any[]>([]);
 
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+  const addItem = (item: any) => setItems((prev) => [...prev, item]);
 
-    // Verificar tamaño inicial
-    checkIfMobile();
+  const removeItem = (id: string) =>
+    setItems((prev) => prev.filter((item) => item.id !== id));
 
-    // Configurar listener para cambios de tamaño
-    window.addEventListener("resize", checkIfMobile);
+  const clearCart = () => setItems([]);
 
-    // Limpiar listener
-    return () => window.removeEventListener("resize", checkIfMobile);
-  }, []);
-
-  return { isMobile };
+  return {
+    items,
+    addItem,
+    removeItem,
+    clearCart,
+    totalItems: items.length,
+  };
 }
